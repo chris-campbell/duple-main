@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <PreferenceCategory android:title="Weather Settings">
+
+        <EditTextPreference
+            android:defaultValue="11203"
+            android:key="zip_code_entry"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:summary="Enter zip code for location you need weather data."
+            android:title="Enter preferred zip code" />
+
+
+        <ListPreference
+            android:defaultValue="fahrenheit"
+            android:entries="@array/units"
+            android:entryValues="@array/unitsValues"
+            android:key="temp_unit"
+            android:title="Select weather unit"
+            android:summary="Select unit you prefer to have weather data shown."/>
+
+        <PreferenceCategory android:title="Notification">
+
+            <SwitchPreference
+                android:defaultValue="false"
+                android:key="enable_notification"
+                android:title="Enable weather notifications"
+                android:summary="When enabled get periodic weather notifications."/>
+        </PreferenceCategory>
+
+    </PreferenceCategory>
+
+</PreferenceScreen>
