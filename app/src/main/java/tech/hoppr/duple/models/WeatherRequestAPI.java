@@ -1,4 +1,4 @@
-package tech.hoppr.duple;
+package tech.hoppr.duple.models;
 
 import android.content.Context;
 import android.location.Address;
@@ -28,7 +28,6 @@ public class WeatherRequestAPI{
     }
 
     final private String WEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5/onecall";
-
     final private String PARAM_QUERY = "?";
     final private String LATITUDE = "lat";
     final private String LONGITUDE = "lon";

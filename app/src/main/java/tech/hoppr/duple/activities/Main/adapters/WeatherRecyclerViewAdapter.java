@@ -1,8 +1,7 @@
-package tech.hoppr.duple;
+package tech.hoppr.duple.activities.Main.adapters;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,6 +15,9 @@ import com.squareup.picasso.Picasso;
 
 import java.time.DayOfWeek;
 import java.util.ArrayList;
+
+import tech.hoppr.duple.models.DailyWeather;
+import tech.hoppr.duple.R;
 
 public class WeatherRecyclerViewAdapter extends RecyclerView.Adapter<WeatherRecyclerViewAdapter.WeatherViewHolder> {
     private Context mContext;
@@ -41,7 +43,6 @@ public class WeatherRecyclerViewAdapter extends RecyclerView.Adapter<WeatherRecy
             mMinTemp = itemView.findViewById(R.id.min_temp);
             mMaxTemp = itemView.findViewById(R.id.max_temp);
             mCurrentDay = itemView.findViewById(R.id.current_day);
-
         }
     }
 
@@ -71,5 +72,4 @@ public class WeatherRecyclerViewAdapter extends RecyclerView.Adapter<WeatherRecy
     public int getItemCount() {
         return mDailyWeatherList.size();
     }
-
 }

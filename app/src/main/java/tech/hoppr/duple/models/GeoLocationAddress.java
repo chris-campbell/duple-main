@@ -1,50 +1,49 @@
-package tech.hoppr.duple;
+package tech.hoppr.duple.models;
 
 import android.content.Context;
 import android.location.Address;
 import android.location.Geocoder;
 import android.os.AsyncTask;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 
-
 public class GeoLocationAddress implements CanGeoLocation {
     private Context mContext;
-    Address address;
+    private Address mAddress;
 
-    GeoLocationAddress(Context context) {
+    public GeoLocationAddress(Context context) {
         mContext = context;
     }
 
     @Override
     public Address fetchAddress(String location) {
         try {
-            address = new FetchAddressAsyncTask(mContext, location).execute().get();
+            mAddress = new FetchAddressAsyncTask(mContext, location).execute().get();
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
-        return address;
+        return mAddress;
     }
 
     @Override
     public Address fetchReverseAddress(Context context, double lat, double lon) {
         try {
-            address = new ReverseFetchAddressAsyncTask(mContext, lat, lon).execute().get();
+            mAddress = new ReverseFetchAddressAsyncTask(mContext, lat, lon).execute().get();
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
-        return address;
+        return mAddress;
     }
 
-
     public static class FetchAddressAsyncTask extends AsyncTask<Void, Void, Address> {
-        Context mContext;
+        WeakReference<Context> mContext;
         String mZipCode;
 
         FetchAddressAsyncTask(Context context, String zipCode) {
-            this.mContext = context;
+            mContext = new WeakReference<>(context);
             mZipCode = zipCode;
         }
 
@@ -52,7 +51,7 @@ public class GeoLocationAddress implements CanGeoLocation {
         protected Address doInBackground(Void... voids) {
             List<Address> addressList;
 
-            Geocoder geocoder = new Geocoder(mContext);
+            Geocoder geocoder = new Geocoder(mContext.get());
             Address address = null;
 
             try {
@@ -66,12 +65,12 @@ public class GeoLocationAddress implements CanGeoLocation {
     }
 
     public static class ReverseFetchAddressAsyncTask extends AsyncTask<Void, Void, Address> {
-        Context mContext;
+        WeakReference<Context> mContext;
         double mLat;
         double mLon;
 
         ReverseFetchAddressAsyncTask(Context context, double lat, double lon) {
-            this.mContext = context;
+            mContext = new WeakReference<>(context);
             this.mLat = lat;
             this.mLon = lon;
         }
@@ -79,7 +78,7 @@ public class GeoLocationAddress implements CanGeoLocation {
         @Override
         protected Address doInBackground(Void... voids) {
             List<Address> addresses;
-            Geocoder geocoder = new Geocoder(mContext, Locale.getDefault());
+            Geocoder geocoder = new Geocoder(mContext.get(), Locale.getDefault());
             Address address = null;
             try {
                 addresses = geocoder.getFromLocation(mLat, mLon, 1);

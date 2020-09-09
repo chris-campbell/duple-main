@@ -1,4 +1,4 @@
-package tech.hoppr.duple;
+package tech.hoppr.duple.activities.Settings;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.PreferenceFragmentCompat;
@@ -14,13 +14,14 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import tech.hoppr.duple.R;
+
 public class SettingActivity extends AppCompatActivity {
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
 
         getSupportFragmentManager().beginTransaction()
                 .replace(android.R.id.content, new WeatherPreferenceFragment())

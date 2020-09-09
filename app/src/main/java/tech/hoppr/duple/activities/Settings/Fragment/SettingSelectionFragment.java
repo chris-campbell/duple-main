@@ -1,4 +1,4 @@
-package tech.hoppr.duple;
+package tech.hoppr.duple.activities.Settings.Fragment;
 
 import android.content.Context;
 import android.os.Bundle;
@@ -14,6 +14,8 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 
 import java.util.Objects;
+
+import tech.hoppr.duple.R;
 
 public class SettingSelectionFragment extends DialogFragment {
 

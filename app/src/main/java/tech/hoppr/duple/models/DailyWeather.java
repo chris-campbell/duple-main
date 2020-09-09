@@ -1,4 +1,4 @@
-package tech.hoppr.duple;
+package tech.hoppr.duple.models;
 
 import java.time.DayOfWeek;
 

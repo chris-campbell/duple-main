@@ -1,4 +1,4 @@
-package tech.hoppr.duple;
+package tech.hoppr.duple.activities.Main;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -6,15 +6,22 @@ import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.app.AlarmManager;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.location.Address;
+import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -33,6 +40,15 @@ import java.text.SimpleDateFormat;
 import java.time.DayOfWeek;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.TimeZone;
+
+import tech.hoppr.duple.models.DailyWeather;
+import tech.hoppr.duple.models.GeoLocationAddress;
+import tech.hoppr.duple.R;
+import tech.hoppr.duple.activities.Settings.SettingActivity;
+import tech.hoppr.duple.activities.Main.adapters.WeatherRecyclerViewAdapter;
+import tech.hoppr.duple.models.WeatherBroadcast;
+import tech.hoppr.duple.models.WeatherRequestAPI;
 
 public class MainActivity extends AppCompatActivity {
     public static final String TAG = "MainActivity";
@@ -50,6 +66,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView mOpenDialog;
     private String zipValue;
     private String weatherUnit;
+    private boolean notificationActive;
     WeatherRequestAPI mWeatherRequestAPI;
 
     // vars
@@ -72,17 +89,17 @@ public class MainActivity extends AppCompatActivity {
         mRequestQueue = Volley.newRequestQueue(this);
         mGeoLocation = new GeoLocationAddress(this);
 
+        mCurrentWeatherTemp.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setAlarm();
+            }
+        });
     }
 
     @Override
     protected void onStart() {
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        zipValue = prefs.getString("zip_code_entry", "11203");
-        weatherUnit = prefs.getString("temp_unit", "fahrenheit");
-
-        mWeatherRequestAPI = getWeatherRequestAPI();
-        URL mUrl = mWeatherRequestAPI.buildUrl();
-        parseJson(mUrl);
+        initWeatherData();
         super.onStart();
     }
 
@@ -100,6 +117,23 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    private void initWeatherData() {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        zipValue = prefs.getString("zip_code_entry", "11203");
+        weatherUnit = prefs.getString("temp_unit", "fahrenheit");
+        notificationActive = prefs.getBoolean("enable_notification", false);
+        createNotificationChannel();
+
+        if (notificationActive) {
+            setAlarm();
+        } else {
+            cancelAlarm();
+        }
+        mWeatherRequestAPI = getWeatherRequestAPI();
+        URL mUrl = mWeatherRequestAPI.buildUrl();
+        parseJson(mUrl);
+    }
+
     private WeatherRequestAPI getWeatherRequestAPI() {
         WeatherRequestAPI mWeatherRequestAPI;
         if (zipValue != null) {
@@ -108,8 +142,8 @@ public class MainActivity extends AppCompatActivity {
             mWeatherRequestAPI = new WeatherRequestAPI(this, mGeoLocation);
         }
         return mWeatherRequestAPI;
-    }
 
+    }
 
     private void parseJson(URL url) {
         JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url.toString(),
@@ -140,12 +174,10 @@ public class MainActivity extends AppCompatActivity {
         mWeatherDataList.clear();
     }
 
-
     private void setCurrentWeatherData(String currentWeatherDesc, double currentTemp, Address countyLocation, String currentWeatherIcon) {
         String url;
 
         mCurrentWeatherTemp.setText(String.valueOf((int) currentTemp));
-
         mCityLocation.setText(stringAfterFirstComma(countyLocation.getAddressLine(0)));
         mShortWeatherDesc.setText(
                 String.format("%s%s", currentWeatherDesc.substring(0, 1).toUpperCase(),
@@ -227,5 +259,43 @@ public class MainActivity extends AppCompatActivity {
 
     private String stringAfterFirstComma(String str) {
         return str.substring(str.indexOf(",") + 1, str.length());
+    }
+
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = "WeatherNoticeChannel";
+            String description = "Channel for weather";
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel("weatherunit", name, importance);
+            channel.setDescription(description);
+
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
+    }
+
+    private void setAlarm() {
+
+
+        Calendar updateTime = Calendar.getInstance();
+        updateTime.setTimeInMillis((System.currentTimeMillis()));
+        updateTime.set(Calendar.HOUR_OF_DAY, 21);
+        updateTime.set(Calendar.MINUTE, 43);
+
+        Intent intent = new Intent(this, WeatherBroadcast.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+
+        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+
+        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, updateTime.getTimeInMillis(), AlarmManager.INTERVAL_DAY, pendingIntent);
+        Toast.makeText(this, "Notifications Active", Toast.LENGTH_SHORT).show();
+    }
+
+    private void cancelAlarm() {
+        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        Intent intent = new Intent(this, WeatherBroadcast.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 1, intent, 0);
+        alarmManager.cancel(pendingIntent);
+        Toast.makeText(this, "Alarm cancelled", Toast.LENGTH_SHORT).show();
     }
 }
