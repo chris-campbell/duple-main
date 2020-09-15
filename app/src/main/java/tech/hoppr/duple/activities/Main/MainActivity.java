@@ -2,6 +2,8 @@ package tech.hoppr.duple.activities.Main;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -10,12 +12,14 @@ import android.app.AlarmManager;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.location.Address;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -68,6 +72,7 @@ public class MainActivity extends AppCompatActivity {
     private String weatherUnit;
     private boolean notificationActive;
     WeatherRequestAPI mWeatherRequestAPI;
+    private double currentTemp;
 
     // vars
     private String iconBaseUrl = "https://openweathermap.org/img/wn/";
@@ -88,13 +93,22 @@ public class MainActivity extends AppCompatActivity {
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         mRequestQueue = Volley.newRequestQueue(this);
         mGeoLocation = new GeoLocationAddress(this);
+        Log.d("ONCreate", String.valueOf(currentTemp));
+    }
 
-        mCurrentWeatherTemp.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                setAlarm();
-            }
-        });
+    @Override
+    protected void onRestart() {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        notificationActive = prefs.getBoolean("enable_notification", false);
+        createNotificationChannel();
+
+
+        if (notificationActive) {
+            setAlarm();
+        } else {
+            cancelAlarm();
+        }
+        super.onRestart();
     }
 
     @Override
@@ -102,6 +116,8 @@ public class MainActivity extends AppCompatActivity {
         initWeatherData();
         super.onStart();
     }
+
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -117,21 +133,21 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+
     private void initWeatherData() {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         zipValue = prefs.getString("zip_code_entry", "11203");
         weatherUnit = prefs.getString("temp_unit", "fahrenheit");
-        notificationActive = prefs.getBoolean("enable_notification", false);
-        createNotificationChannel();
 
-        if (notificationActive) {
-            setAlarm();
-        } else {
-            cancelAlarm();
-        }
+
         mWeatherRequestAPI = getWeatherRequestAPI();
         URL mUrl = mWeatherRequestAPI.buildUrl();
         parseJson(mUrl);
+    }
+
+    private boolean isAlarmUp() {
+        Intent intent = new Intent(this, WeatherBroadcast.class);
+        return PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_NO_CREATE) != null;
     }
 
     private WeatherRequestAPI getWeatherRequestAPI() {
@@ -142,7 +158,6 @@ public class MainActivity extends AppCompatActivity {
             mWeatherRequestAPI = new WeatherRequestAPI(this, mGeoLocation);
         }
         return mWeatherRequestAPI;
-
     }
 
     private void parseJson(URL url) {
@@ -153,7 +168,6 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     // Sets up current weather data
                     currentWeatherData(response);
-
                     // Setup daily weather data and set to recycler view adapter
                     dailyWeatherData(response);
 
@@ -187,7 +201,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void currentWeatherData(JSONObject response) throws JSONException {
-        double currentTemp = response.getJSONObject("current").getDouble("temp");
+        currentTemp = response.getJSONObject("current").getDouble("temp");
+        Log.d("currentWeatherData", String.valueOf(currentTemp));
         int formatedTemp;
         double lat = response.getDouble("lat");
         double lon = response.getDouble("lon");
@@ -266,28 +281,34 @@ public class MainActivity extends AppCompatActivity {
             CharSequence name = "WeatherNoticeChannel";
             String description = "Channel for weather";
             int importance = NotificationManager.IMPORTANCE_DEFAULT;
-            NotificationChannel channel = new NotificationChannel("weatherunit", name, importance);
+            NotificationChannel channel = new NotificationChannel("weatherunits", name, importance);
             channel.setDescription(description);
 
+
             NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            notificationManager.createNotificationChannel(channel);
+
+            if (notificationManager != null) {
+                notificationManager.createNotificationChannel(channel);
+            }
         }
     }
 
     private void setAlarm() {
-
-
         Calendar updateTime = Calendar.getInstance();
         updateTime.setTimeInMillis((System.currentTimeMillis()));
-        updateTime.set(Calendar.HOUR_OF_DAY, 21);
-        updateTime.set(Calendar.MINUTE, 43);
+        updateTime.set(Calendar.HOUR_OF_DAY, 8);
+        updateTime.set(Calendar.MINUTE, 18);
 
         Intent intent = new Intent(this, WeatherBroadcast.class);
+        Log.d("CURRENTTEMP", String.valueOf(currentTemp));
+        intent.putExtra("TEMP", 86);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
 
-        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
 
-        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, updateTime.getTimeInMillis(), AlarmManager.INTERVAL_DAY, pendingIntent);
+        AlarmManager alarmManager = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager != null) {
+            alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, updateTime.getTimeInMillis(), AlarmManager.INTERVAL_DAY, pendingIntent);
+        }
         Toast.makeText(this, "Notifications Active", Toast.LENGTH_SHORT).show();
     }
 
@@ -295,7 +316,10 @@ public class MainActivity extends AppCompatActivity {
         AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
         Intent intent = new Intent(this, WeatherBroadcast.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 1, intent, 0);
-        alarmManager.cancel(pendingIntent);
+        if (alarmManager != null) {
+            alarmManager.cancel(pendingIntent);
+        }
         Toast.makeText(this, "Alarm cancelled", Toast.LENGTH_SHORT).show();
     }
+
 }
