@@ -1,4 +1,4 @@
 package tech.hoppr.duple.models;
 
-public class WeatherBroadcast {
+public class Weather {
 }
